@@ -1,0 +1,26 @@
+{
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "devDependencies": {
+    "@total-typescript/tsconfig": "^1.0.4",
+    "@types/mailparser": "^3.4.6",
+    "@types/node": "^24.10.1",
+    "@vercel/node": "^5.5.11",
+    "typescript": "^5.7.2",
+    "vitest": "^4.0.14"
+  },
+  "dependencies": {
+    "@ai-sdk/gateway": "2.0.0-beta.66",
+    "@upstash/qstash": "^2.8.4",
+    "@upstash/redis": "^1.35.6",
+    "ai": "6.0.0-beta.122",
+    "googleapis": "^166.0.0",
+    "mailparser": "^3.9.0",
+    "planer": "^1.2.0",
+    "zod": "^4.1.13"
+  }
+}
