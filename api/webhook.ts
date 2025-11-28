@@ -115,7 +115,12 @@ const processMessage = async ({
   if (!message.threadId || !message.id) return;
 
   const isNew = await PROCESSED_EMAILS_KV.set(message.id);
-  if (!isNew) return;
+  if (!isNew) {
+    console.log(
+      `Skipping email ${message.id} as it has already been processed`
+    );
+    return;
+  }
 
   const threadMetaRes = await gmail.users.threads.get({
     userId: "me",
@@ -124,24 +129,34 @@ const processMessage = async ({
   });
 
   // TODO: For now only process single message threads
-  if ((threadMetaRes.data.messages?.length ?? 0) > 1) return;
+  if ((threadMetaRes.data.messages?.length ?? 0) > 1) {
+    console.log(
+      `Skipping email ${message.id} as it is part of a thread with multiple messages`
+    );
+    return;
+  }
 
   const messageRes = await gmail.users.messages.get({
     userId: "me",
     id: message.id,
     format: "raw",
   });
-
-  const systemLabels = await getSystemLabels(gmail);
-  // Skip if message has a non-system label
-  if (messageRes.data.labelIds?.every((labelId) => systemLabels.has(labelId)))
-    return;
-
   const rawString = Buffer.from(messageRes.data.raw!, "base64url").toString(
     "utf-8"
   );
 
   const email = await simpleParser(rawString);
+
+  const systemLabels = await getSystemLabels(gmail);
+
+  // Skip if message has a non-system label
+  if (messageRes.data.labelIds?.some((labelId) => !systemLabels.has(labelId))) {
+    console.log(
+      `Skipping email ${message.id} as it has a non-system label`,
+      email.subject
+    );
+    return;
+  }
 
   const label = await getAILabel(email);
   if (isLocal()) {
@@ -176,7 +191,7 @@ async function handler(_req: VercelRequest, res: VercelResponse) {
   const gmail = google.gmail({ version: "v1", auth: authClient });
 
   const now = Math.floor(Date.now() / 1000);
-  const defaultTimestamp = now - 60 * 60 * 24; // 1 hour ago
+  const defaultTimestamp = now - 60 * 60 * 48;
   const lastTimestamp =
     (await LAST_PROCESSED_TIMESTAMP_KV.get()) ?? defaultTimestamp;
 
