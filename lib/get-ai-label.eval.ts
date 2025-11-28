@@ -58,9 +58,9 @@ evalite("getAILabel", {
     },
     {
       input: createMockEmail(
-        "friend@personal.com",
-        "Hey",
-        "Just thinking about you. Hope everything is going well!"
+        "unknown@example.org",
+        "Fwd: Fwd: Fwd:",
+        "---------- Forwarded message ----------"
       ),
       expected: "UNCATEGORIZED",
     },

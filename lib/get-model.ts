@@ -12,11 +12,9 @@ export const getModel = async (
     return model;
   }
 
-  // Dynamically import eval-only dependencies
   const [{ cacheModel }, { traceAISDKModel }, { createStorage }, fsDriver] =
     await Promise.all([
       import("./cache-model.js"),
-      // @ts-ignore - evalite subpath exports work at runtime but TS can't resolve with CommonJS moduleResolution
       import("evalite/ai-sdk"),
       import("unstorage"),
       import("unstorage/drivers/fs"),
