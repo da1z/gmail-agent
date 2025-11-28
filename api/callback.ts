@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getAuthClient } from "../lib/get-auth-client";
-import { REFRESH_TOKEN_KV } from "../lib/kv";
+import { getAuthClient } from "../lib/get-auth-client.js";
+import { REFRESH_TOKEN_KV } from "../lib/kv.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { code, error } = req.query;

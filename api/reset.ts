@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { LAST_PROCESSED_TIMESTAMP_KV, PROCESSED_EMAILS_KV } from "../lib/kv";
+import { LAST_PROCESSED_TIMESTAMP_KV, PROCESSED_EMAILS_KV } from "../lib/kv.js";
 
 export default async (_req: VercelRequest, res: VercelResponse) => {
   await LAST_PROCESSED_TIMESTAMP_KV.delete();

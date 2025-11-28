@@ -1,7 +1,7 @@
-import { evalite } from "evalite";
 import { ExactMatch } from "autoevals";
-import { getAILabel } from "../api/webhook";
+import { evalite } from "evalite";
 import type { ParsedMail } from "mailparser";
+import { getAILabel } from "../../api/webhook.js";
 
 const createMockEmail = (
   from: string,

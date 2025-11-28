@@ -1,5 +1,5 @@
 import { google } from "googleapis";
-import { isLocal } from "./is-local";
+import { isLocal } from "./is-local.js";
 
 export const getAuthClient = () => {
   const redirectUri = isLocal()

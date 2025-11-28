@@ -1,17 +1,17 @@
 import { verifySignature } from "@upstash/qstash/nextjs";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { google, gmail_v1 } from "googleapis";
+import { generateObject } from "ai";
+import { gmail_v1, google } from "googleapis";
 import { ParsedMail, simpleParser } from "mailparser";
-import { getAuthClient } from "../lib/get-auth-client";
-import { isLocal } from "../lib/is-local";
+import { z } from "zod";
+import { getAuthClient } from "../lib/get-auth-client.js";
+import { getModel } from "../lib/get-model.js";
+import { isLocal } from "../lib/is-local.js";
 import {
   LAST_PROCESSED_TIMESTAMP_KV,
   PROCESSED_EMAILS_KV,
   REFRESH_TOKEN_KV,
-} from "../lib/kv";
-import { gateway, generateObject } from "ai";
-import { z } from "zod";
-import { getModel } from "../lib/get-model";
+} from "../lib/kv.js";
 
 const defaultLabels = [
   {
