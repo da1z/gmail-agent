@@ -135,7 +135,7 @@ async function handler(_req: VercelRequest, res: VercelResponse) {
   const gmail = google.gmail({ version: "v1", auth: authClient });
 
   const now = Math.floor(Date.now() / 1000);
-  const defaultTimestamp = now - 60 * 60 * 48;
+  const defaultTimestamp = now - 60 * 60;
   const lastTimestamp =
     (await LAST_PROCESSED_TIMESTAMP_KV.get()) ?? defaultTimestamp;
 
