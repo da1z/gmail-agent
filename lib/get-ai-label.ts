@@ -19,11 +19,13 @@ const defaultLabels = [
   },
   {
     label: "NEWSLETTER",
-    reason: "subscribed content, digests, marketing",
+    reason:
+      "subscribed content with actual informational value (news digests, industry updates, curated content)",
   },
   {
     label: "SPAM_LOW_PRIORITY",
-    reason: "unsolicited outreach, cold sales, junk",
+    reason:
+      "unsolicited outreach, cold sales, junk, promotional/sales emails with discount codes or special offers, marketing emails focused on selling products",
   },
   {
     label: "UNCATEGORIZED",
