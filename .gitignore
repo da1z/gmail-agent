@@ -141,3 +141,6 @@ vite.config.ts.timestamp-*
 .vite/
 .vercel
 .env*.local
+
+# Evalite LLM cache
+llm-cache.local/

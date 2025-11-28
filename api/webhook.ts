@@ -11,6 +11,7 @@ import {
 } from "../lib/kv";
 import { gateway, generateObject } from "ai";
 import { z } from "zod";
+import { getModel } from "../lib/get-model";
 
 const defaultLabels = [
   {
@@ -67,9 +68,20 @@ const getOrCreateLabel = async (
   return createRes.data.id!;
 };
 
-const getAILabel = async (email: ParsedMail) => {
+const getSystemLabels = async (gmail: gmail_v1.Gmail) => {
+  const allLabels = await gmail.users.labels.list({
+    userId: "me",
+  });
+  return new Set(
+    allLabels.data.labels
+      ?.filter((label) => label.type === "system")
+      ?.map((label) => label.id) ?? []
+  );
+};
+
+export const getAILabel = async (email: ParsedMail) => {
   const { object } = await generateObject({
-    model: gateway("anthropic/claude-haiku-4.5"),
+    model: await getModel("anthropic/claude-haiku-4.5"),
     prompt: `# Email Classification Prompt
 
 Classify the email into exactly ONE label:
@@ -93,25 +105,60 @@ ${defaultLabels
   return object.label;
 };
 
-const processMessage = async (
-  message: gmail_v1.Schema$Message,
-  gmail: gmail_v1.Gmail
-) => {
-  const raw = Buffer.from(message.raw!, "base64url").toString("utf-8");
-  const parsed = await simpleParser(raw);
+const processMessage = async ({
+  message,
+  gmail,
+}: {
+  message: gmail_v1.Schema$Message;
+  gmail: gmail_v1.Gmail;
+}) => {
+  if (!message.threadId || !message.id) return;
 
-  const label = await getAILabel(parsed);
-  const labelId = await getOrCreateLabel(gmail, label);
+  const isNew = await PROCESSED_EMAILS_KV.set(message.id);
+  if (!isNew) return;
 
-  await gmail.users.messages.modify({
+  const threadMetaRes = await gmail.users.threads.get({
     userId: "me",
-    id: message.id!,
-    requestBody: {
-      addLabelIds: [labelId],
-    },
+    id: message.threadId,
+    format: "metadata",
   });
 
-  return parsed;
+  // TODO: For now only process single message threads
+  if ((threadMetaRes.data.messages?.length ?? 0) > 1) return;
+
+  const messageRes = await gmail.users.messages.get({
+    userId: "me",
+    id: message.id,
+    format: "raw",
+  });
+
+  const systemLabels = await getSystemLabels(gmail);
+  // Skip if message has a non-system label
+  if (messageRes.data.labelIds?.every((labelId) => systemLabels.has(labelId)))
+    return;
+
+  const rawString = Buffer.from(messageRes.data.raw!, "base64url").toString(
+    "utf-8"
+  );
+
+  const email = await simpleParser(rawString);
+
+  const label = await getAILabel(email);
+  if (isLocal()) {
+    console.log(
+      `Running in local mode. Would have processed email: ${email.subject} with label: ${label}`
+    );
+  } else {
+    const labelId = await getOrCreateLabel(gmail, label);
+
+    await gmail.users.messages.modify({
+      userId: "me",
+      id: message.id,
+      requestBody: { addLabelIds: [labelId] },
+    });
+  }
+
+  return { isProcessed: true, label };
 };
 
 async function handler(_req: VercelRequest, res: VercelResponse) {
@@ -137,7 +184,7 @@ async function handler(_req: VercelRequest, res: VercelResponse) {
     const listRes = await gmail.users.messages.list({
       userId: "me",
       q: `after:${lastTimestamp}`,
-      maxResults: 1,
+      maxResults: 10,
     });
 
     const messages = listRes.data.messages ?? [];
@@ -150,38 +197,10 @@ async function handler(_req: VercelRequest, res: VercelResponse) {
     const processed = [];
 
     for (const message of messages) {
-      if (!message.threadId || !message.id) continue;
-
-      const isNew = await PROCESSED_EMAILS_KV.set(message.id);
-
-      if (!isNew) {
-        console.log(`Skipping already processed email: ${message.id}`);
-        continue;
+      const result = await processMessage({ message, gmail });
+      if (result?.isProcessed) {
+        processed.push({ id: message.id, label: result.label });
       }
-
-      const threadMetaRes = await gmail.users.threads.get({
-        userId: "me",
-        id: message.threadId,
-        format: "metadata",
-      });
-
-      if ((threadMetaRes.data.messages?.length ?? 0) > 1) {
-        // TODO: Handle threads with multiple messages
-        console.log(
-          `Skipping thread with multiple messages: ${message.threadId}`
-        );
-        continue;
-      }
-
-      const messageRes = await gmail.users.messages.get({
-        userId: "me",
-        id: message.id,
-        format: "raw",
-      });
-
-      await processMessage(messageRes.data, gmail);
-
-      processed.push({ id: message.id });
     }
 
     await LAST_PROCESSED_TIMESTAMP_KV.set(now);
